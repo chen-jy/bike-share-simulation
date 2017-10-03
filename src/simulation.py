@@ -48,6 +48,8 @@ class Simulation:
         """Initialize this simulation with the given configuration settings.
         """
         self.visualizer = Visualizer()
+        self.all_stations = create_stations(station_file)
+        self.all_rides = create_rides(ride_file, self.all_stations)
 
     def run(self, start: datetime, end: datetime) -> None:
         """Run the simulation from <start> to <end>.
@@ -139,8 +141,13 @@ def create_stations(stations_file: str) -> Dict[str, 'Station']:
         # s is a dictionary with the keys 'n', 's', 'la', 'lo', 'da', and 'ba'
         # as described in the assignment handout.
         # NOTE: all of the corresponding values are strings, and so you need
-        # to convert some of them to numbers explicitly using int() or float().
-        pass
+        # to convert some of them to numbers explicitly using int() or float().id_ = s['n']
+        location = float(s['lo']), float(s['la'])
+        num_bikes = int(s['da'])
+        capacity = num_bikes + int(s['ba'])
+        name = s['s']
+
+        stations[id_] = Station(location, capacity, num_bikes, name)
 
     return stations
 
@@ -168,7 +175,15 @@ def create_rides(rides_file: str,
             # constant we defined above. Example:
             # >>> datetime.strptime('2017-06-01 8:00', DATETIME_FORMAT)
             # datetime.datetime(2017, 6, 1, 8, 0)
-            pass
+            start_time = datetime.strptime(line[0], DATETIME_FORMAT)
+            start = line[1]
+            end_time = datetime.strptime(line[2], DATETIME_FORMAT)
+            end = line[3]
+
+            # Only create a ride if the starting and ending stations exist
+            if start in stations and end in stations:
+                rides.append(Ride(stations[start], stations[end],
+                                  (start_time, end_time)))
 
     return rides
 
