@@ -141,7 +141,8 @@ def create_stations(stations_file: str) -> Dict[str, 'Station']:
         # s is a dictionary with the keys 'n', 's', 'la', 'lo', 'da', and 'ba'
         # as described in the assignment handout.
         # NOTE: all of the corresponding values are strings, and so you need
-        # to convert some of them to numbers explicitly using int() or float().id_ = s['n']
+        # to convert some of them to numbers explicitly using int() or float().
+        id_ = s['n']
         location = float(s['lo']), float(s['la'])
         num_bikes = int(s['da'])
         capacity = num_bikes + int(s['ba'])
