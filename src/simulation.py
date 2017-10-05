@@ -229,6 +229,17 @@ class RideEndEvent(Event):
 def sample_simulation() -> Dict[str, Tuple[str, float]]:
     """Run a sample simulation. For testing purposes only."""
     sim = Simulation('stations.json', 'sample_rides.csv')
+    
+    print("Number of stations:", len(sim.all_stations))
+    for i in sim.all_stations:
+        print(sim.all_stations[i].name, sim.all_stations[i].location,
+              sim.all_stations[i].num_bikes, sim.all_stations[i].capacity)
+    print()
+
+    print("Number of rides:", len(sim.all_rides))
+    for i in sim.all_rides:
+        print(i.start_time, i.start.name, i.end_time, i.end.name)
+    
     sim.run(datetime(2017, 6, 1, 8, 0, 0),
             datetime(2017, 6, 1, 9, 0, 0))
     return sim.calculate_statistics()
