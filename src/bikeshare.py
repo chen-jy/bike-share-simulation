@@ -18,7 +18,6 @@ a graphical window.
 from datetime import datetime
 from typing import Tuple
 
-
 # Sprite files
 STATION_SPRITE = 'stationsprite.png'
 RIDE_SPRITE = 'bikesprite.png'
@@ -73,6 +72,8 @@ class Station(Drawable):
 
         Precondition: 0 <= num_bikes <= cap
         """
+        Drawable.__init__(self, STATION_SPRITE)
+
         self.location = pos
         self.capacity = cap
         self.num_bikes = num_bikes
@@ -85,7 +86,7 @@ class Station(Drawable):
         The <time> parameter is included only because we should not change
         the header of an overridden method.
         """
-        pass
+        return self.location
 
 
 class Ride(Drawable):
@@ -113,6 +114,8 @@ class Ride(Drawable):
                  times: Tuple[datetime, datetime]) -> None:
         """Initialize a ride object with the given start and end information.
         """
+        Drawable.__init__(self, RIDE_SPRITE)
+
         self.start, self.end = start, end
         self.start_time, self.end_time = times[0], times[1]
 
@@ -122,11 +125,30 @@ class Ride(Drawable):
         A ride travels in a straight line between its start and end stations
         at a constant speed.
         """
-        pass
+
+        # starting coordinates
+        start_long = self.start.get_position(time)[0]
+        start_lat = self.start.get_position(time)[1]
+
+        # end coordinates
+        end_long = self.end.get_position(time)[0]
+        end_lat = self.end.get_position(time)[1]
+
+        total_time = (self.end_time - self.start_time).total_seconds()
+        elapsed_time = (time - self.start_time).total_seconds()
+
+        dx = (end_long - start_long )/ total_time
+        dy = (end_lat - start_lat) / total_time
+
+        curr_long = start_long + elapsed_time * dx
+        curr_lat = start_lat + elapsed_time * dy
+
+        return (curr_long, curr_lat)
 
 
 if __name__ == '__main__':
     import python_ta
+
     python_ta.check_all(config={
         'allowed-import-modules': [
             'doctest', 'python_ta', 'typing',

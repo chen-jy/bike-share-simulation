@@ -39,24 +39,42 @@ class Simulation:
         A dictionary containing all the stations in this simulation.
     visualizer:
         A helper class for visualizing the simulation.
+    active_rides:
+        List of all rides that are in progress. Only these rides are displayed.
     """
     all_stations: Dict[str, Station]
     all_rides: List[Ride]
     visualizer: Visualizer
+    active_rides: List[Ride]
 
     def __init__(self, station_file: str, ride_file: str) -> None:
         """Initialize this simulation with the given configuration settings.
         """
         self.visualizer = Visualizer()
+        self.all_stations = create_stations(station_file)
+        self.all_rides = create_rides(ride_file, self.all_stations)
+        self.active_rides = []
 
     def run(self, start: datetime, end: datetime) -> None:
         """Run the simulation from <start> to <end>.
         """
         step = timedelta(minutes=1)  # Each iteration spans one minute of time
+        stations = list(self.all_stations.values())
 
         # Leave this code at the very bottom of this method.
         # It will keep the visualization window open until you close
         # it by pressing the 'X'.
+        curr_time = start
+        while curr_time <= end:
+            self._update_active_rides(curr_time)
+            drawables = stations + self.active_rides
+            self.visualizer.render_drawables(drawables, curr_time)
+
+            # self.update_low_statistics()
+            curr_time += step
+        self.visualizer.render_drawables(stations, end)
+        print("Finished")
+
         while True:
             if self.visualizer.handle_window_events():
                 return  # Stop the simulation
@@ -79,7 +97,15 @@ class Simulation:
             period but ends during or after the simulation's time period,
             it should still be added to self.active_rides.
         """
-        pass
+
+        for ride in self.all_rides:
+            if ride not in self.active_rides and \
+                                    ride.start_time <= time <= ride.end_time:
+                self.active_rides.append(ride)
+            elif ride in self.active_rides and not \
+                                    ride.start_time <= time <= ride.end_time:
+                self.active_rides.remove(ride)
+                print('removed at ' + str(time))
 
     def calculate_statistics(self) -> Dict[str, Tuple[str, float]]:
         """Return a dictionary containing statistics for this simulation.
@@ -140,7 +166,9 @@ def create_stations(stations_file: str) -> Dict[str, 'Station']:
         # as described in the assignment handout.
         # NOTE: all of the corresponding values are strings, and so you need
         # to convert some of them to numbers explicitly using int() or float().
-        pass
+        stations[s['n']] = Station((float(s['lo']), float(s['la'])),
+                                   int(s['da']) + int(s['ba']),
+                                   int(s['da']), s['s'])
 
     return stations
 
@@ -168,7 +196,18 @@ def create_rides(rides_file: str,
             # constant we defined above. Example:
             # >>> datetime.strptime('2017-06-01 8:00', DATETIME_FORMAT)
             # datetime.datetime(2017, 6, 1, 8, 0)
-            pass
+
+            start = line[1]
+            end = line[3]
+
+            if start in stations and end in stations:
+                start = stations[str(line[1])]
+                end = stations[str(line[3])]
+
+                start_time = datetime.strptime(line[0], DATETIME_FORMAT)
+                end_time = datetime.strptime(line[2], DATETIME_FORMAT)
+
+                rides.append(Ride(start, end, (start_time, end_time)))
 
     return rides
 
@@ -216,6 +255,9 @@ def sample_simulation() -> Dict[str, Tuple[str, float]]:
     sim = Simulation('stations.json', 'sample_rides.csv')
     sim.run(datetime(2017, 6, 1, 8, 0, 0),
             datetime(2017, 6, 1, 9, 0, 0))
+
+    # sim.visualizer.render_drawables(list(sim.all_stations.values()), )
+
     return sim.calculate_statistics()
 
 
