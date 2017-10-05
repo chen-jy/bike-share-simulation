@@ -55,6 +55,14 @@ class Simulation:
         """Run the simulation from <start> to <end>.
         """
         step = timedelta(minutes=1)  # Each iteration spans one minute of time
+        stations = list(self.all_stations.values())
+        drawables = stations + self.all_rides
+        
+        curr_time = start
+        while curr_time <= end:
+            self.visualizer.render_drawables(drawables, curr_time)
+            curr_time += step
+        self.visualizer.render_drawables(stations, end)
 
         # Leave this code at the very bottom of this method.
         # It will keep the visualization window open until you close
