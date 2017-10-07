@@ -58,6 +58,18 @@ class Station(Drawable):
         name of the station
     num_bikes: int
         current number of bikes at the station
+    rides_started: int
+        The number of rides that started at the station during the simulation.
+        Rides already in progress when the simulation begins are not counted.
+    rides_ended: int
+        The number of rides that ended at the station during the simulation.
+        Rides that haven't ended when the simulation finishes are not counted.
+    low_availability: int
+        The total amount of time during the simulation, in seconds, that the
+        station spent with at most five bikes available.
+    low_unoccupied: int
+        The total amount of time during the simulation, in seconds, that the
+        station spent with at most five unoccupied spots.
 
     === Representation Invariants ===
     - 0 <= num_bikes <= capacity
@@ -66,6 +78,10 @@ class Station(Drawable):
     location: Tuple[float, float]
     capacity: int
     num_bikes: int
+    rides_started: int
+    rides_ended: int
+    low_availability: int
+    low_unoccupied: int
 
     def __init__(self, pos: Tuple[float, float], cap: int,
                  num_bikes: int, name: str) -> None:
@@ -78,6 +94,10 @@ class Station(Drawable):
         self.capacity = cap
         self.num_bikes = num_bikes
         self.name = name
+        self.rides_started = 0
+        self.rides_ended = 0
+        self.low_availability = 0
+        self.low_unoccupied = 0
 
     def get_position(self, time: datetime) -> Tuple[float, float]:
         """Return the (long, lat) position of this station for the given time.

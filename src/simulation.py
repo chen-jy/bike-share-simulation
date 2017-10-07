@@ -40,7 +40,8 @@ class Simulation:
     visualizer:
         A helper class for visualizing the simulation.
     active_rides:
-        A list of all the currently active rides in the simulation.
+        A list of all the rides currently in progress in the simulation. Only
+        these rides are visualized.
     """
     all_stations: Dict[str, Station]
     all_rides: List[Ride]
@@ -64,6 +65,7 @@ class Simulation:
         curr_time = start
         while curr_time <= end:
             self._update_active_rides(curr_time)
+            self._update_low_statistics()
             drawables = stations + self.active_rides
             self.visualizer.render_drawables(drawables, curr_time)
             curr_time += step
@@ -99,9 +101,26 @@ class Simulation:
             if (ride.start_time <= time <= ride.end_time and
                     ride not in self.active_rides and ride.start.num_bikes > 0):
                 self.active_rides.append(ride)
-            elif ((ride.start_time > time or ride.end_time < time) and
+                if ride.start_time == time:
+                    ride.start.rides_started += 1
+                    ride.start.num_bikes -= 1
+            elif ((ride.start_time > time or ride.end_time <= time) and
                     ride in self.active_rides):
                 self.active_rides.remove(ride)
+                if ride.end.num_bikes < ride.end.capacity:
+                    ride.end.rides_ended += 1
+                    ride.end.num_bikes += 1
+
+    def _update_low_statistics(self) -> None:
+        """Update each station's low_availability and low_unoccupied statistics.
+        Check to see if any station has at most five bikes available or at most
+        five unoccupied spots, respectively.
+        """
+        for station in self.all_stations.values():
+            if station.num_bikes <= 5:
+                station.low_availability += 60
+            if station.capacity - station.num_bikes <= 5:
+                station.low_unoccupied += 1
 
     def calculate_statistics(self) -> Dict[str, Tuple[str, float]]:
         """Return a dictionary containing statistics for this simulation.
@@ -122,11 +141,38 @@ class Simulation:
         name of the station with the most number of rides started at that
         station, and the number of rides that started at that station.
         """
+        max_start_val, max_start_id = 0, ''
+        max_end_val, max_end_id = 0, ''
+        max_low_avail_val, max_low_avail_id = 0, ''
+        max_low_unocc_val, max_low_unocc_id = 0, ''
+
+        for station in self.all_stations.values():
+            if (station.rides_started > max_start_val or
+                    (station.rides_started == max_start_val and
+                     station.name < max_start_id)):
+                max_start_val = station.rides_started
+                max_start_id = station.name
+            if (station.rides_ended > max_end_val or
+                    (station.rides_ended == max_end_val and
+                     station.name < max_end_id)):
+                max_end_val = station.rides_ended
+                max_end_id = station.name
+            if (station.low_availability > max_low_avail_val or
+                    (station.low_availability == max_low_avail_val and
+                     station.name < max_low_avail_id)):
+                max_low_avail_val = station.low_availability
+                max_low_avail_id = station.name
+            if (station.low_unoccupied > max_low_unocc_val or
+                    (station.low_unoccupied == max_low_unocc_val and
+                     station.name < max_low_unocc_id)):
+                max_low_unocc_val = station.low_unoccupied
+                max_low_unocc_id = station.name
+
         return {
-            'max_start': ('', -1),
-            'max_end': ('', -1),
-            'max_time_low_availability': ('', -1),
-            'max_time_low_unoccupied': ('', -1)
+            'max_start': (max_start_id, max_start_val),
+            'max_end': (max_end_id, max_end_val),
+            'max_time_low_availability': (max_low_avail_id, max_low_avail_val),
+            'max_time_low_unoccupied': (max_low_unocc_id, max_low_unocc_val)
         }
 
     def _update_active_rides_fast(self, time: datetime) -> None:
