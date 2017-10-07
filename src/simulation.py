@@ -65,9 +65,10 @@ class Simulation:
         curr_time = start
         while curr_time <= end:
             self._update_active_rides(curr_time)
-            self._update_low_statistics()
             drawables = stations + self.active_rides
             self.visualizer.render_drawables(drawables, curr_time)
+            if curr_time > start:
+                self._update_low_statistics()
             curr_time += step
 
         self.visualizer.render_drawables(stations, end)
@@ -120,7 +121,7 @@ class Simulation:
             if station.num_bikes <= 5:
                 station.low_availability += 60
             if station.capacity - station.num_bikes <= 5:
-                station.low_unoccupied += 1
+                station.low_unoccupied += 60
 
     def calculate_statistics(self) -> Dict[str, Tuple[str, float]]:
         """Return a dictionary containing statistics for this simulation.
@@ -149,22 +150,24 @@ class Simulation:
         for station in self.all_stations.values():
             if (station.rides_started > max_start_val or
                     (station.rides_started == max_start_val and
-                     station.name < max_start_id)):
+                     station.name < max_start_id) or max_start_id == ''):
                 max_start_val = station.rides_started
                 max_start_id = station.name
             if (station.rides_ended > max_end_val or
                     (station.rides_ended == max_end_val and
-                     station.name < max_end_id)):
+                     station.name < max_end_id) or max_end_id == ''):
                 max_end_val = station.rides_ended
                 max_end_id = station.name
             if (station.low_availability > max_low_avail_val or
                     (station.low_availability == max_low_avail_val and
-                     station.name < max_low_avail_id)):
+                     station.name < max_low_avail_id) or
+                    max_low_avail_id == ''):
                 max_low_avail_val = station.low_availability
                 max_low_avail_id = station.name
             if (station.low_unoccupied > max_low_unocc_val or
                     (station.low_unoccupied == max_low_unocc_val and
-                     station.name < max_low_unocc_id)):
+                     station.name < max_low_unocc_id) or
+                    max_low_unocc_id == ''):
                 max_low_unocc_val = station.low_unoccupied
                 max_low_unocc_id = station.name
 
