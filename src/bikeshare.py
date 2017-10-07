@@ -144,13 +144,16 @@ class Ride(Drawable):
         A ride travels in a straight line between its start and end stations
         at a constant speed.
         """
+        # Four pieces of known information
         start = self.start.get_position(time)
         end = self.end.get_position(time)
         total_time = (self.end_time - self.start_time).total_seconds()
         elapsed_time = (time - self.start_time).total_seconds()
 
+        # Calculate the x- and y-components of speed
         vx = (end[0] - start[0]) / total_time
         vy = (end[1] - start[1]) / total_time
+        # Calculate the current coordinates using the components of speed
         curr_x = start[0] + elapsed_time * vx
         curr_y = start[1] + elapsed_time * vy
 

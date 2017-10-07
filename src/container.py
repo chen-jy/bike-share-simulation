@@ -73,8 +73,14 @@ class PriorityQueue(Container[T]):
 
         NOTE: See the docstring for the 'remove' method for a sample doctest.
         """
-        # TODO: Implement this method!
-        pass
+        # Loop backwards through the list ("forwards" through the queue)
+        for i in range(len(self._queue) - 1, -1, -1):
+            # item is more important
+            if item < self._queue[i]:
+                self._queue.insert(i + 1, item)
+                return
+        # By default, add the item to the front of the list ("end" of the queue)
+        self._queue.insert(0, item)
 
     def remove(self) -> T:
         """Remove and return the next item from this PriorityQueue.

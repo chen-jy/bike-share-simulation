@@ -42,11 +42,15 @@ class Simulation:
     active_rides:
         A list of all the rides currently in progress in the simulation. Only
         these rides are visualized.
+    next_events:
+        A priority queue containing ride start and ride end events to process
+        active rides more efficiently. Earlier events are extracted first.
     """
     all_stations: Dict[str, Station]
     all_rides: List[Ride]
     visualizer: Visualizer
     active_rides: List[Ride]
+    next_events: PriorityQueue['Event']
 
     def __init__(self, station_file: str, ride_file: str) -> None:
         """Initialize this simulation with the given configuration settings.
@@ -55,6 +59,7 @@ class Simulation:
         self.all_stations = create_stations(station_file)
         self.all_rides = create_rides(ride_file, self.all_stations)
         self.active_rides = []
+        self.next_events = PriorityQueue()
 
     def run(self, start: datetime, end: datetime) -> None:
         """Run the simulation from <start> to <end>.
@@ -62,15 +67,26 @@ class Simulation:
         step = timedelta(minutes=1)  # Each iteration spans one minute of time
         stations = list(self.all_stations.values())
 
+        # Create the initial ride start events
+        for ride in self.all_rides:
+            # Add the rides that start after the simulation's start time as well
+            # as the rides that haven't ended yet.
+            if ride.start_time <= end and ride.end_time >= start:
+                self.next_events.add(RideStartEvent(self, ride.start_time,
+                                                    ride))
+
+        # Main simulation loop
         curr_time = start
         while curr_time <= end:
-            self._update_active_rides(curr_time)
+            # self._update_active_rides(curr_time)
+            self._update_active_rides_fast(curr_time)
             drawables = stations + self.active_rides
             self.visualizer.render_drawables(drawables, curr_time)
             if curr_time > start:
                 self._update_low_statistics()
             curr_time += step
 
+        # Update the screen one last time (all rides have ended)
         self.visualizer.render_drawables(stations, end)
 
         # Leave this code at the very bottom of this method.
@@ -102,24 +118,29 @@ class Simulation:
             if (ride.start_time <= time <= ride.end_time and
                     ride not in self.active_rides and ride.start.num_bikes > 0):
                 self.active_rides.append(ride)
+                # Update station statistics only if the ride starts after the
+                # simulation's start time.
                 if ride.start_time == time:
                     ride.start.rides_started += 1
                     ride.start.num_bikes -= 1
             elif ((ride.start_time > time or ride.end_time <= time) and
-                    ride in self.active_rides):
+                  ride in self.active_rides):
                 self.active_rides.remove(ride)
+                # Update station statistics only if the ending station has
+                # enough unoccupied spots.
                 if ride.end.num_bikes < ride.end.capacity:
                     ride.end.rides_ended += 1
                     ride.end.num_bikes += 1
 
     def _update_low_statistics(self) -> None:
         """Update each station's low_availability and low_unoccupied statistics.
+
         Check to see if any station has at most five bikes available or at most
         five unoccupied spots, respectively.
         """
         for station in self.all_stations.values():
             if station.num_bikes <= 5:
-                station.low_availability += 60
+                station.low_availability += 60  # Time in seconds
             if station.capacity - station.num_bikes <= 5:
                 station.low_unoccupied += 60
 
@@ -142,6 +163,7 @@ class Simulation:
         name of the station with the most number of rides started at that
         station, and the number of rides that started at that station.
         """
+        # Default values guaranteed to be overwritten in the first loop
         max_start_val, max_start_id = 0, ''
         max_end_val, max_end_id = 0, ''
         max_low_avail_val, max_low_avail_id = 0, ''
@@ -184,7 +206,18 @@ class Simulation:
         REQUIRED IMPLEMENTATION NOTES:
         -   see Task 5 of the assignment handout
         """
-        pass
+        curr_event = self.next_events.remove()
+        # Not time for the next event yet
+        if time < curr_event.time:
+            self.next_events.add(curr_event)
+        else:
+            # Get the next event
+            next_event = curr_event.process()
+            # The next event is a ride start event
+            if next_event is not None:
+                # There is only one event, but add a loop to generalize
+                for i in range(len(next_event)):
+                    self.next_events.add(next_event[i])
 
 
 def create_stations(stations_file: str) -> Dict[str, 'Station']:
@@ -247,6 +280,7 @@ def create_rides(rides_file: str,
             start = line[1]
             end = line[3]
 
+            # Ignore rides that start or end at nonexistant stations
             if start in stations and end in stations:
                 times = (datetime.strptime(line[0], DATETIME_FORMAT),
                          datetime.strptime(line[2], DATETIME_FORMAT))
@@ -285,31 +319,58 @@ class Event:
 
 class RideStartEvent(Event):
     """An event corresponding to the start of a ride."""
-    pass
+    def __init__(self, simulation: 'Simulation', time: datetime, ride: 'Ride')\
+            -> None:
+        Event.__init__(self, simulation, time)
+        self.ride = ride
+
+    def process(self) -> List['Event']:
+        """Process this event by updating the state of the simulation.
+
+        Return a list of new events spawned by this event.
+        """
+        # Run only if the station has enough bikes for a ride
+        if self.ride.start.num_bikes > 0:
+            self.simulation.active_rides.append(self.ride)
+            return [RideEndEvent(self.simulation, self.ride.end_time,
+                                 self.ride)]
 
 
 class RideEndEvent(Event):
     """An event corresponding to the start of a ride."""
-    pass
+    def __init__(self, simulation: 'Simulation', time: datetime, ride: 'Ride')\
+            -> None:
+        Event.__init__(self, simulation, time)
+        self.ride = ride
+
+    def process(self) -> None:
+        """Process this event by updating the state of the simulation.
+
+        No events are generated by this event, so return None.
+        """
+        self.simulation.active_rides.remove(self.ride)
+        return None
 
 
 def sample_simulation() -> Dict[str, Tuple[str, float]]:
     """Run a sample simulation. For testing purposes only."""
     sim = Simulation('stations.json', 'sample_rides.csv')
 
-    print(f"Number of stations: {len(sim.all_stations)}\n")
-    for i in sim.all_stations:
-        print(f"Station name: {sim.all_stations[i].name}")
-        print(f"Position: {sim.all_stations[i].location}")
-        print(f"Capacity: {sim.all_stations[i].capacity}")
-        print(f"Bikes: {sim.all_stations[i].num_bikes}\n")
+    # Print sample station information
+    # print(f"Number of stations: {len(sim.all_stations)}\n")
+    # for station in sim.all_stations:
+    #     print(f"Station name: {sim.all_stations[station].name}")
+    #     print(f"Position: {sim.all_stations[station].location}")
+    #     print(f"Capacity: {sim.all_stations[station].capacity}")
+    #     print(f"Bikes: {sim.all_stations[station].num_bikes}\n")
 
-    print(f"Number of rides: {len(sim.all_rides)}")
-    for i in sim.all_rides:
-        print(f"Start station: {i.start.name}")
-        print(f"Start time: {i.start_time}")
-        print(f"End station: {i.end.name}")
-        print(f"End time: {i.end_time}\n")
+    # Print sample ride information
+    # print(f"Number of rides: {len(sim.all_rides)}")
+    # for ride in sim.all_rides:
+    #     print(f"Start station: {ride.start.name}")
+    #     print(f"Start time: {ride.start_time}")
+    #     print(f"End station: {ride.end.name}")
+    #     print(f"End time: {ride.end_time}\n")
 
     sim.run(datetime(2017, 6, 1, 8, 0, 0),
             datetime(2017, 6, 1, 9, 0, 0))
@@ -318,13 +379,13 @@ def sample_simulation() -> Dict[str, Tuple[str, float]]:
 
 if __name__ == '__main__':
     # Uncomment these lines when you want to check your work using python_ta!
-    # import python_ta
-    # python_ta.check_all(config={
-    #     'allowed-io': ['create_stations', 'create_rides'],
-    #     'allowed-import-modules': [
-    #         'doctest', 'python_ta', 'typing',
-    #         'csv', 'datetime', 'json',
-    #         'bikeshare', 'container', 'visualizer'
-    #     ]
-    # })
-    print(sample_simulation())
+    import python_ta
+    python_ta.check_all(config={
+        'allowed-io': ['create_stations', 'create_rides'],
+        'allowed-import-modules': [
+            'doctest', 'python_ta', 'typing',
+            'csv', 'datetime', 'json',
+            'bikeshare', 'container', 'visualizer'
+        ]
+    })
+    #print(sample_simulation())
