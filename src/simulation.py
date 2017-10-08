@@ -82,6 +82,7 @@ class Simulation:
             self._update_active_rides_fast(curr_time)
             drawables = stations + self.active_rides
             self.visualizer.render_drawables(drawables, curr_time)
+            # Statistics counting starts at the end of the first minute
             if curr_time > start:
                 self._update_low_statistics()
             curr_time += step
@@ -120,8 +121,7 @@ class Simulation:
                 if ride.start_time == time:
                     ride.start.rides_started += 1
                     ride.start.num_bikes -= 1
-            elif ((ride.start_time > time or ride.end_time <= time) and
-                  ride in self.active_rides):
+            elif ride.end_time <= time and ride in self.active_rides:
                 self.active_rides.remove(ride)
                 # Update station statistics only if the ending station has
                 # enough unoccupied spots.
@@ -161,40 +161,41 @@ class Simulation:
         station, and the number of rides that started at that station.
         """
         # Default values guaranteed to be overwritten in the first loop
-        max_start_val, max_start_id = 0, ''
-        max_end_val, max_end_id = 0, ''
-        max_low_avail_val, max_low_avail_id = 0, ''
-        max_low_unocc_val, max_low_unocc_id = 0, ''
+        max_start_val, max_start_name = 0, ''
+        max_end_val, max_end_name = 0, ''
+        max_low_avail_val, max_low_avail_name = 0, ''
+        max_low_unocc_val, max_low_unocc_name = 0, ''
 
         for station in self.all_stations.values():
             if (station.rides_started > max_start_val or
                     (station.rides_started == max_start_val and
-                     station.name < max_start_id) or max_start_id == ''):
+                     station.name < max_start_name) or max_start_name == ''):
                 max_start_val = station.rides_started
-                max_start_id = station.name
+                max_start_name = station.name
             if (station.rides_ended > max_end_val or
                     (station.rides_ended == max_end_val and
-                     station.name < max_end_id) or max_end_id == ''):
+                     station.name < max_end_name) or max_end_name == ''):
                 max_end_val = station.rides_ended
-                max_end_id = station.name
+                max_end_name = station.name
             if (station.low_availability > max_low_avail_val or
                     (station.low_availability == max_low_avail_val and
-                     station.name < max_low_avail_id) or
-                    max_low_avail_id == ''):
+                     station.name < max_low_avail_name) or
+                    max_low_avail_name == ''):
                 max_low_avail_val = station.low_availability
-                max_low_avail_id = station.name
+                max_low_avail_name = station.name
             if (station.low_unoccupied > max_low_unocc_val or
                     (station.low_unoccupied == max_low_unocc_val and
-                     station.name < max_low_unocc_id) or
-                    max_low_unocc_id == ''):
+                     station.name < max_low_unocc_name) or
+                    max_low_unocc_name == ''):
                 max_low_unocc_val = station.low_unoccupied
-                max_low_unocc_id = station.name
+                max_low_unocc_name = station.name
 
         return {
-            'max_start': (max_start_id, max_start_val),
-            'max_end': (max_end_id, max_end_val),
-            'max_time_low_availability': (max_low_avail_id, max_low_avail_val),
-            'max_time_low_unoccupied': (max_low_unocc_id, max_low_unocc_val)
+            'max_start': (max_start_name, max_start_val),
+            'max_end': (max_end_name, max_end_val),
+            'max_time_low_availability': (max_low_avail_name,
+                                          max_low_avail_val),
+            'max_time_low_unoccupied': (max_low_unocc_name, max_low_unocc_val)
         }
 
     def _update_active_rides_fast(self, time: datetime) -> None:
@@ -214,7 +215,7 @@ class Simulation:
         # same time.
         while curr_event.time <= time:
             # If the event is a ride start event, update the starting station's
-            # rides started statistic, if the ride can start.
+            # rides started statistic if the ride can start.
             if isinstance(curr_event, RideStartEvent):
                 # Only update statistics for rides that start during the
                 # simulation time.
@@ -227,20 +228,21 @@ class Simulation:
                 curr_event.ride.end.rides_ended += 1
 
             next_event = curr_event.process()
-            # The next event is a ride start event
+            # If the next event is a ride start event
             if next_event is not None:
                 # There is only one event, but use a loop to generalize
                 for i in range(len(next_event)):
                     self.next_events.add(next_event[i])
 
-            # Get the new current event
+            # Get the new current event if more events exist
             if not self.next_events.is_empty():
                 curr_event = self.next_events.remove()
             else:
                 return
 
         # The latest current event will always have a start time of later than
-        # the current time, so add the event back into the queue.
+        # the current time due to the condition of the while loop, so add the
+        # event back into the queue.
         self.next_events.add(curr_event)
 
 
