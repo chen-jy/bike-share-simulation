@@ -86,9 +86,6 @@ class Simulation:
                 self._update_low_statistics()
             curr_time += step
 
-        # Update the screen one last time (all rides have ended)
-        self.visualizer.render_drawables(stations, end)
-
         # Leave this code at the very bottom of this method.
         # It will keep the visualization window open until you close
         # it by pressing the 'X'.
@@ -206,18 +203,45 @@ class Simulation:
         REQUIRED IMPLEMENTATION NOTES:
         -   see Task 5 of the assignment handout
         """
+        # Do nothing if there are no events to be processed
+        if self.next_events.is_empty():
+            return
         curr_event = self.next_events.remove()
-        # Not time for the next event yet
-        if time < curr_event.time:
-            self.next_events.add(curr_event)
-        else:
-            # Get the next event
+
+        # Deal with all of the events that have an execution time of earlier
+        # than the current time. This is to draw the rides that started before
+        # the start of the simulation and to deal with rides that start at the
+        # same time.
+        while curr_event.time <= time:
+            # If the event is a ride start event, update the starting station's
+            # rides started statistic, if the ride can start.
+            if isinstance(curr_event, RideStartEvent):
+                # Only update statistics for rides that start during the
+                # simulation time.
+                if (curr_event.time == time and
+                        curr_event.ride.start.num_bikes > 0):
+                    curr_event.ride.start.rides_started += 1
+            # If the event is a ride end event, update the ending station's
+            # rides ended statistic.
+            else:
+                curr_event.ride.end.rides_ended += 1
+
             next_event = curr_event.process()
             # The next event is a ride start event
             if next_event is not None:
-                # There is only one event, but add a loop to generalize
+                # There is only one event, but use a loop to generalize
                 for i in range(len(next_event)):
                     self.next_events.add(next_event[i])
+
+            # Get the new current event
+            if not self.next_events.is_empty():
+                curr_event = self.next_events.remove()
+            else:
+                return
+
+        # The latest current event will always have a start time of later than
+        # the current time, so add the event back into the queue.
+        self.next_events.add(curr_event)
 
 
 def create_stations(stations_file: str) -> Dict[str, 'Station']:
@@ -379,13 +403,13 @@ def sample_simulation() -> Dict[str, Tuple[str, float]]:
 
 if __name__ == '__main__':
     # Uncomment these lines when you want to check your work using python_ta!
-    import python_ta
-    python_ta.check_all(config={
-        'allowed-io': ['create_stations', 'create_rides'],
-        'allowed-import-modules': [
-            'doctest', 'python_ta', 'typing',
-            'csv', 'datetime', 'json',
-            'bikeshare', 'container', 'visualizer'
-        ]
-    })
-    #print(sample_simulation())
+    # import python_ta
+    # python_ta.check_all(config={
+    #     'allowed-io': ['create_stations', 'create_rides'],
+    #     'allowed-import-modules': [
+    #         'doctest', 'python_ta', 'typing',
+    #         'csv', 'datetime', 'json',
+    #         'bikeshare', 'container', 'visualizer'
+    #     ]
+    # })
+    print(sample_simulation())
