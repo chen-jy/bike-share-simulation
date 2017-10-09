@@ -70,14 +70,23 @@ class Simulation:
             drawables = stations + self.active_rides
             self.visualizer.render_drawables(drawables, curr_time)
 
-            # self.update_low_statistics()
+            if not curr_time == end:
+                self.update_low_statistics()
+
             curr_time += step
-        self.visualizer.render_drawables(stations, end)
-        print("Finished")
 
         while True:
             if self.visualizer.handle_window_events():
                 return  # Stop the simulation
+
+    def update_low_statistics(self):
+        """ Updates low occupancy and low availability of all Stations
+        """
+        for station in self.all_stations.values():
+            if station.num_bikes <= 5:
+                station.low_avail += 1
+            if station.capacity - station.num_bikes <= 5:
+                station.low_occup += 1
 
     def _update_active_rides(self, time: datetime) -> None:
         """Update this simulation's list of active rides for the given time.
@@ -102,10 +111,14 @@ class Simulation:
             if ride not in self.active_rides and \
                                     ride.start_time <= time <= ride.end_time:
                 self.active_rides.append(ride)
+                ride.start.bike_starts += 1
+                ride.start.num_bikes -= 1
             elif ride in self.active_rides and not \
                                     ride.start_time <= time <= ride.end_time:
                 self.active_rides.remove(ride)
-                print('removed at ' + str(time))
+                ride.end.bike_ends += 1
+                ride.end.num_bikes += 1
+
 
     def calculate_statistics(self) -> Dict[str, Tuple[str, float]]:
         """Return a dictionary containing statistics for this simulation.
@@ -126,11 +139,48 @@ class Simulation:
         name of the station with the most number of rides started at that
         station, and the number of rides that started at that station.
         """
+
+        max_start = -1
+        start_station = ''
+        for s in self.all_stations.values():
+            if s.bike_starts > max_start:
+                start_station = s.name
+                max_start = s.bike_starts
+            elif s.bike_starts == max_start and s.name < start_station:
+                start_station = s.name
+
+        max_end = -1
+        end_station = ''
+        for s in self.all_stations.values():
+            if s.bike_ends > max_end:
+                end_station = s.name
+                max_end = s.bike_ends
+            elif s.bike_ends == max_end and s.name < end_station:
+                end_station = s.name
+
+        max_low_avail = -1
+        avail_station = ''
+        for s in self.all_stations.values():
+            if s.low_avail > max_low_avail:
+                avail_station = s.name
+                max_low_avail = s.low_avail
+            elif s.low_avail == max_low_avail and s.name < avail_station:
+                avail_station = s.name
+
+        max_low_occup = -1
+        occup_station = ''
+        for s in self.all_stations.values():
+            if s.low_occup > max_low_occup:
+                occup_station = s.name
+                max_low_occup = s.low_occup
+            elif s.low_occup == max_low_occup and s.name < occup_station:
+                occup_station = s.name
+
         return {
-            'max_start': ('', -1),
-            'max_end': ('', -1),
-            'max_time_low_availability': ('', -1),
-            'max_time_low_unoccupied': ('', -1)
+            'max_start': (start_station, max_start),
+            'max_end': (end_station, max_end),
+            'max_time_low_availability': (avail_station, 60 * max_low_avail),
+            'max_time_low_unoccupied': (occup_station, 60 * max_low_occup)
         }
 
     def _update_active_rides_fast(self, time: datetime) -> None:

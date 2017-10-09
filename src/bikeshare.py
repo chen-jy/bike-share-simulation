@@ -65,6 +65,10 @@ class Station(Drawable):
     location: Tuple[float, float]
     capacity: int
     num_bikes: int
+    bike_starts: int
+    bike_ends: int
+    low_avail : int
+    low_occup : int
 
     def __init__(self, pos: Tuple[float, float], cap: int,
                  num_bikes: int, name: str) -> None:
@@ -78,6 +82,10 @@ class Station(Drawable):
         self.capacity = cap
         self.num_bikes = num_bikes
         self.name = name
+        self.bike_starts = 0
+        self.bike_ends = 0
+        self.low_avail = 0
+        self.low_occup = 0
 
     def get_position(self, time: datetime) -> Tuple[float, float]:
         """Return the (long, lat) position of this station for the given time.
@@ -137,7 +145,7 @@ class Ride(Drawable):
         total_time = (self.end_time - self.start_time).total_seconds()
         elapsed_time = (time - self.start_time).total_seconds()
 
-        dx = (end_long - start_long )/ total_time
+        dx = (end_long - start_long) / total_time
         dy = (end_lat - start_lat) / total_time
 
         curr_long = start_long + elapsed_time * dx
