@@ -73,6 +73,10 @@ class Station(Drawable):
 
     === Representation Invariants ===
     - 0 <= num_bikes <= capacity
+    - rides_started >= 0
+    - rides_ended >= 0
+    - low_availability >= 0
+    - low_unoccupied >= 0
     """
     name: str
     location: Tuple[float, float]
@@ -144,7 +148,8 @@ class Ride(Drawable):
         A ride travels in a straight line between its start and end stations
         at a constant speed.
         """
-        # Four pieces of known information
+        # time is passed only because of Drawable's get_position signature.
+        # It serves absolutely no purpose in this call.
         start = self.start.get_position(time)
         end = self.end.get_position(time)
         total_time = (self.end_time - self.start_time).total_seconds()
@@ -157,7 +162,7 @@ class Ride(Drawable):
         curr_x = start[0] + elapsed_time * vx
         curr_y = start[1] + elapsed_time * vy
 
-        return curr_x, curr_y
+        return (curr_x, curr_y)
 
 
 if __name__ == '__main__':
