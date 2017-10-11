@@ -76,14 +76,14 @@ class PriorityQueue(Container[T]):
         """
         # TODO: Implement this method!
 
-        index = 0
-        for obj in self._queue:
-            if T < obj:
-                self._queue.insert(index, T)
+        index = len(self._queue) - 1
+        while index >= 0:
+            if item < self._queue[index]:
+                self._queue.insert(index + 1, item)
                 return
-            index += 1
+            index -= 1
 
-        self._queue.append(T)
+        self._queue.insert(0, item)
 
     def remove(self) -> T:
         """Remove and return the next item from this PriorityQueue.

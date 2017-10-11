@@ -46,6 +46,7 @@ class Simulation:
     all_rides: List[Ride]
     visualizer: Visualizer
     active_rides: List[Ride]
+    event_pq: PriorityQueue
 
     def __init__(self, station_file: str, ride_file: str) -> None:
         """Initialize this simulation with the given configuration settings.
@@ -54,6 +55,7 @@ class Simulation:
         self.all_stations = create_stations(station_file)
         self.all_rides = create_rides(ride_file, self.all_stations)
         self.active_rides = []
+        self.event_pq = PriorityQueue()
 
     def run(self, start: datetime, end: datetime) -> None:
         """Run the simulation from <start> to <end>.
@@ -61,12 +63,27 @@ class Simulation:
         step = timedelta(minutes=1)  # Each iteration spans one minute of time
         stations = list(self.all_stations.values())
 
-        # Leave this code at the very bottom of this method.
-        # It will keep the visualization window open until you close
-        # it by pressing the 'X'.
+        for ride in self.all_rides:
+            self.event_pq.add(RideStartEvent(self, ride.start_time, ride))
+            print(ride.start_time)
+
         curr_time = start
         while curr_time <= end:
-            self._update_active_rides(curr_time)
+
+            print('\n=Time: ' + str(curr_time))
+            # print('=Active rides:')
+            # for ride in self.active_rides:
+            #     print('start: ' + str(ride.start_time) + '  end: ' + str(ride.end_time))
+
+            print('Queue:')
+            for event in self.event_pq._queue:
+                if isinstance(event, RideEndEvent):
+                    print('End event at: ' + str(event.time))
+                else:
+                    print('Start event at: ' + str(event.time))
+            # ride at start 8:46
+
+            self._update_active_rides_fast(curr_time)
             drawables = stations + self.active_rides
             self.visualizer.render_drawables(drawables, curr_time)
 
@@ -75,6 +92,9 @@ class Simulation:
 
             curr_time += step
 
+        # Leave this code at the very bottom of this method.
+        # It will keep the visualization window open until you close
+        # it by pressing the 'X'.
         while True:
             if self.visualizer.handle_window_events():
                 return  # Stop the simulation
@@ -188,7 +208,24 @@ class Simulation:
         REQUIRED IMPLEMENTATION NOTES:
         -   see Task 5 of the assignment handout
         """
-        pass
+
+        next_event = self.event_pq.remove()
+        print('===Next start: ' + str(next_event.time))
+
+        if next_event.time > time:
+            self.event_pq.add(next_event)
+            return
+
+        while next_event.time <= time:
+            if isinstance(next_event, RideStartEvent):
+                self.event_pq.add(next_event.process()[0])
+                self.active_rides.append(next_event.ride)
+                next_event = self.event_pq.remove()
+            elif isinstance(next_event, RideEndEvent):
+                next_event.process()
+                return
+            else:
+                return
 
 
 def create_stations(stations_file: str) -> Dict[str, 'Station']:
@@ -292,14 +329,40 @@ class Event:
 class RideStartEvent(Event):
     """An event corresponding to the start of a ride."""
 
-    def __init__(self, simulation: 'Simulation', time: datetime) -> None:
+    ride: 'Ride'
+    def __init__(self, simulation: 'Simulation', time: datetime,
+                 bike_ride: 'Ride') -> None:
         Event.__init__(self, simulation, time)
-        ride_end = RideEndEvent(simulation, time)
+        self.ride = bike_ride
+        self.time = bike_ride.start_time
+
+    def process(self) -> List['Event']:
+        """Process this event by updating the state of the simulation.
+
+        Return a list of new events spawned by this event.
+        """
+        self.ride.start.bike_starts += 1
+        return [RideEndEvent(self.simulation, self.ride.end_time, self.ride)]
 
 
 class RideEndEvent(Event):
     """An event corresponding to the start of a ride."""
-    pass
+
+    ride: 'Ride'
+    def __init__(self, simulation: 'Simulation', time: datetime,
+                 bike_ride: 'Ride') -> None:
+        Event.__init__(self, simulation, time)
+        self.ride = bike_ride
+        self.time = bike_ride.end_time
+
+    def process(self) -> List['Event']:
+        """Process this event by updating the state of the simulation.
+
+        Return a list of new events spawned by this event.
+        """
+        self.ride.end.bike_ends += 1
+        self.simulation.active_rides.remove(self.ride)
+        return []
 
 
 def sample_simulation() -> Dict[str, Tuple[str, float]]:
