@@ -119,7 +119,6 @@ class Simulation:
                 ride.end.bike_ends += 1
                 ride.end.num_bikes += 1
 
-
     def calculate_statistics(self) -> Dict[str, Tuple[str, float]]:
         """Return a dictionary containing statistics for this simulation.
 
@@ -292,7 +291,10 @@ class Event:
 
 class RideStartEvent(Event):
     """An event corresponding to the start of a ride."""
-    pass
+
+    def __init__(self, simulation: 'Simulation', time: datetime) -> None:
+        Event.__init__(self, simulation, time)
+        ride_end = RideEndEvent(simulation, time)
 
 
 class RideEndEvent(Event):
