@@ -1,0 +1,8 @@
+Testing Results
+
+Test 1 (5000 ride file):
+sim.run(datetime(2017, 5, 1, 0, 0, 0), datetime(2017, 5, 2, 0, 0, 0))
+'max_start': ('Mackay /de Maisonneuve (Sud)', 47)
+'max_end': ('Milton / Université', 32)
+'max_time_low_availability': ('15e avenue / Masson', 86400)
+'max_time_low_unoccupied': ('12e avenue / St-Zotique', 86400)

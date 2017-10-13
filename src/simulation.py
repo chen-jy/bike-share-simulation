@@ -389,6 +389,10 @@ class RideStartEvent(Event):
             return [RideEndEvent(self.simulation, self.ride.end_time,
                                  self.ride)]
 
+        # Otherwise, no new events need to be returned
+        else:
+            return []
+
 
 class RideEndEvent(Event):
     """An event corresponding to the start of a ride.
@@ -436,20 +440,20 @@ def sample_simulation() -> Dict[str, Tuple[str, float]]:
     #     print(f"End station: {ride.end.name}")
     #     print(f"End time: {ride.end_time}\n")
 
-    sim.run(datetime(2017, 6, 1, 8, 0, 0),
-            datetime(2017, 6, 1, 9, 0, 0))
+    sim.run(datetime(2017, 5, 1, 0, 0, 0),
+            datetime(2017, 5, 2, 0, 0, 0))
     return sim.calculate_statistics()
 
 
 if __name__ == '__main__':
     # Uncomment these lines when you want to check your work using python_ta!
-    import python_ta
-    python_ta.check_all(config={
-        'allowed-io': ['create_stations', 'create_rides'],
-        'allowed-import-modules': [
-            'doctest', 'python_ta', 'typing',
-            'csv', 'datetime', 'json',
-            'bikeshare', 'container', 'visualizer'
-        ]
-    })
-    # print(sample_simulation())
+    # import python_ta
+    # python_ta.check_all(config={
+    #     'allowed-io': ['create_stations', 'create_rides'],
+    #     'allowed-import-modules': [
+    #         'doctest', 'python_ta', 'typing',
+    #         'csv', 'datetime', 'json',
+    #         'bikeshare', 'container', 'visualizer'
+    #     ]
+    # })
+    print(sample_simulation())
