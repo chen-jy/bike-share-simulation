@@ -31,6 +31,7 @@ class Drawable:
     sprite:
         The filename of the image to be drawn for this object.
     """
+    # Attribute types
     sprite: str
 
     def __init__(self, sprite_file: str) -> None:
@@ -78,6 +79,7 @@ class Station(Drawable):
     - low_availability >= 0
     - low_unoccupied >= 0
     """
+    # Attribute types
     name: str
     location: Tuple[float, float]
     capacity: int
@@ -129,6 +131,7 @@ class Ride(Drawable):
     === Representation Invariants ===
     - start_time < end_time
     """
+    # Attribute types
     start: Station
     end: Station
     start_time: datetime
@@ -148,19 +151,18 @@ class Ride(Drawable):
         A ride travels in a straight line between its start and end stations
         at a constant speed.
         """
-        # time is passed only because of Drawable's get_position signature.
-        # It serves absolutely no purpose in this call.
-        start = self.start.get_position(time)
-        end = self.end.get_position(time)
+        # Get the known pieces of information
+        start_pos = self.start.get_position(time)  # Pass time to satisfy
+        end_pos = self.end.get_position(time)      # method signature
         total_time = (self.end_time - self.start_time).total_seconds()
         elapsed_time = (time - self.start_time).total_seconds()
 
         # Calculate the x- and y-components of speed
-        vx = (end[0] - start[0]) / total_time
-        vy = (end[1] - start[1]) / total_time
+        vx = (end_pos[0] - start_pos[0]) / total_time
+        vy = (end_pos[1] - start_pos[1]) / total_time
         # Calculate the current coordinates using the components of speed
-        curr_x = start[0] + elapsed_time * vx
-        curr_y = start[1] + elapsed_time * vy
+        curr_x = start_pos[0] + elapsed_time * vx
+        curr_y = start_pos[1] + elapsed_time * vy
 
         return (curr_x, curr_y)
 

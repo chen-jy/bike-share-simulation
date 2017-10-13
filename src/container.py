@@ -61,6 +61,7 @@ class PriorityQueue(Container[T]):
     - all elements of _queue are of the same type
     - the elements of _queue are in non-increasing order
     """
+    # Attribute types
     _queue: List[T]
 
     def __init__(self) -> None:
@@ -75,8 +76,9 @@ class PriorityQueue(Container[T]):
         """
         # Loop backwards through the list ("forwards" through the queue)
         for i in range(len(self._queue) - 1, -1, -1):
-            # item is more important
+            # item is more important than the current element
             if item < self._queue[i]:
+                # Insert item after ("before") the current element
                 self._queue.insert(i + 1, item)
                 return
         # By default, add the item to the front of the list ("end" of the queue)

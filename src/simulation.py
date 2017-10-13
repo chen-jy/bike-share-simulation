@@ -49,7 +49,7 @@ class Simulation:
         statistics.
 
     === Private Attributes ===
-    _next_events:
+    _event_pq:
         A priority queue containing ride start and ride end events to process
         active rides more efficiently. Earlier events are extracted first.
     """
@@ -59,7 +59,7 @@ class Simulation:
     visualizer: Visualizer
     active_rides: List[Ride]
     start_time: datetime
-    _next_events: PriorityQueue['Event']
+    _event_pq: PriorityQueue['Event']
 
     def __init__(self, station_file: str, ride_file: str) -> None:
         """Initialize this simulation with the given configuration settings.
@@ -69,7 +69,7 @@ class Simulation:
         self.all_rides = create_rides(ride_file, self.all_stations)
         self.active_rides = []
         self.start_time = datetime.now()  # Arbitrary initial value
-        self._next_events = PriorityQueue()
+        self._event_pq = PriorityQueue()
 
     def run(self, start: datetime, end: datetime) -> None:
         """Run the simulation from <start> to <end>.
@@ -77,6 +77,7 @@ class Simulation:
         self.start_time = start
 
         step = timedelta(minutes=1)  # Each iteration spans one minute of time
+        # List of stations; no need to cast the values every minute
         stations = list(self.all_stations.values())
 
         # Create the initial ride start events
@@ -89,8 +90,9 @@ class Simulation:
             self._update_active_rides_fast(curr_time)
             drawables = stations + self.active_rides
             self.visualizer.render_drawables(drawables, curr_time)
+
             # Make sure not to overcount statistics
-            if curr_time < end or start == end:
+            if curr_time < end or start == end:  # start == end is an edge case
                 self._update_low_statistics()
             curr_time += step
 
@@ -108,8 +110,8 @@ class Simulation:
             # Add the rides that start after the simulation's start time as well
             # as the rides that haven't ended yet.
             if ride.start_time <= end and ride.end_time >= start:
-                self._next_events.add(RideStartEvent(self, ride.start_time,
-                                                     ride))
+                self._event_pq.add(RideStartEvent(self, ride.start_time,
+                                                  ride))
 
     def _update_active_rides(self, time: datetime) -> None:
         """Update this simulation's list of active rides for the given time.
@@ -139,6 +141,7 @@ class Simulation:
                 if ride.start_time == time:
                     ride.start.rides_started += 1
                     ride.start.num_bikes -= 1
+
             # Remove non-active rides
             elif ride.end_time <= time and ride in self.active_rides:
                 self.active_rides.remove(ride)
@@ -185,6 +188,7 @@ class Simulation:
         max_low_avail_val, max_low_avail_name = -1, ''
         max_low_unocc_val, max_low_unocc_name = -1, ''
 
+        # This is self-documenting code
         for station in self.all_stations.values():
             if (station.rides_started > max_start_val or
                     (station.rides_started == max_start_val and
@@ -222,21 +226,21 @@ class Simulation:
         -   see Task 5 of the assignment handout
         """
         # Do nothing if there are no events to be processed
-        if self._next_events.is_empty():
+        if self._event_pq.is_empty():
             return
-        curr_event = self._next_events.remove()
+        curr_event = self._event_pq.remove()
 
         # Deal with all of the events that have an execution time of earlier
         # than the current time, as well as multiple events that may have the
         # same execution time.
         while curr_event.time <= time:
-            next_event = curr_event.process()
-            for i in range(len(next_event)):
-                self._next_events.add(next_event[i])
+            new_events = curr_event.process()
+            for i in range(len(new_events)):
+                self._event_pq.add(new_events[i])
 
             # Get the new current event if more events exist
-            if not self._next_events.is_empty():
-                curr_event = self._next_events.remove()
+            if not self._event_pq.is_empty():
+                curr_event = self._event_pq.remove()
             # Otherwise, there are no more events to process
             else:
                 return
@@ -244,7 +248,7 @@ class Simulation:
         # The latest current event will always have a start time of later than
         # the current time due to the condition of the while loop, so add the
         # event back into the queue.
-        self._next_events.add(curr_event)
+        self._event_pq.add(curr_event)
 
 
 def create_stations(stations_file: str) -> Dict[str, 'Station']:
@@ -376,8 +380,11 @@ class RideStartEvent(Event):
         if self.ride.start.num_bikes > 0:
             self.simulation.active_rides.append(self.ride)
 
+            # Only increase stations' ride start statistics if the ride starts
+            # after the simulation's starting time.
             if self.time >= self.simulation.start_time:
                 self.ride.start.rides_started += 1
+                self.ride.start.num_bikes -= 1
 
             return [RideEndEvent(self.simulation, self.ride.end_time,
                                  self.ride)]
@@ -436,13 +443,13 @@ def sample_simulation() -> Dict[str, Tuple[str, float]]:
 
 if __name__ == '__main__':
     # Uncomment these lines when you want to check your work using python_ta!
-    # import python_ta
-    # python_ta.check_all(config={
-    #     'allowed-io': ['create_stations', 'create_rides'],
-    #     'allowed-import-modules': [
-    #         'doctest', 'python_ta', 'typing',
-    #         'csv', 'datetime', 'json',
-    #         'bikeshare', 'container', 'visualizer'
-    #     ]
-    # })
-    print(sample_simulation())
+    import python_ta
+    python_ta.check_all(config={
+        'allowed-io': ['create_stations', 'create_rides'],
+        'allowed-import-modules': [
+            'doctest', 'python_ta', 'typing',
+            'csv', 'datetime', 'json',
+            'bikeshare', 'container', 'visualizer'
+        ]
+    })
+    # print(sample_simulation())
