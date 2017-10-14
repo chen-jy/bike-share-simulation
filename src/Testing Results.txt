@@ -1,8 +1,91 @@
-Testing Results
+﻿STRESS TEST 1:
+This test runs 3840 rides from the default stations over a period of 24 hours. The test
+may or may not take a long time to complete.
 
-Test 1 (5000 ride file):
-sim.run(datetime(2017, 5, 1, 0, 0, 0), datetime(2017, 5, 2, 0, 0, 0))
+Code (replace sample_simulation in simulation.py with this code and then run it):
+def sample_simulation() -> Dict[str, Tuple[str, float]]:
+    sim = Simulation('stations.json', 'custom_rides_1.csv')
+    sim.run(datetime(2017, 5, 1, 0, 0, 0), datetime(2017, 5, 2, 0, 0, 0))
+    return sim.calculate_statistics()
+
+Results:
 'max_start': ('Mackay /de Maisonneuve (Sud)', 47)
 'max_end': ('Milton / Université', 32)
 'max_time_low_availability': ('15e avenue / Masson', 86400)
 'max_time_low_unoccupied': ('12e avenue / St-Zotique', 86400)
+
+==========================================================================================
+
+STRESS TEST 2:
+General stress test. May take a few minutes to complete.
+
+Code:
+def sample_simulation() -> Dict[str, Tuple[str, float]]:
+    sim = Simulation('stations.json', 'custom_rides_1.csv')
+    sim.run(datetime(2017, 5, 1, 23, 59, 0), datetime(2017, 5, 2, 9, 0, 0))
+    return sim.calculate_statistics()
+
+Results:
+'max_start': ('Fullum / Sherbrooke ', 10)
+'max_end': ('Square Victoria', 22)
+'max_time_low_availability': ('15e avenue / Masson', 32460)
+'max_time_low_unoccupied': ('12e avenue / St-Zotique', 32460)
+
+==========================================================================================
+
+STRESS TEST 3:
+General stress test. May take a few minutes to complete.
+
+Code:
+def sample_simulation() -> Dict[str, Tuple[str, float]]:
+    sim = Simulation('stations.json', 'custom_rides_1.csv')
+    sim.run(datetime(2017, 5, 1, 16, 0, 0), datetime(2017, 5, 1, 20, 0, 0))
+    return sim.calculate_statistics()
+
+Results:
+'max_start': ('St-Dominique / St-Viateur', 23)
+'max_end': ('MÃ©tro Mont-Royal (Rivard / du Mont-Royal)', 20)
+'max_time_low_availability': ('15e avenue / Masson', 14400)
+'max_time_low_unoccupied': ('10e Avenue / Rosemont', 14400)
+
+==========================================================================================
+
+CUSTOM TEST 1:
+Rides either (begin before the simulation starts and end after the simulation ends) or
+(start after the simulation ends).
+
+==========================================================================================
+
+CUSTOM TEST 2:
+The simulation start time is equal to the simulation end time.
+
+==========================================================================================
+
+CUSTOM TEST 3:
+No rides run during the simulation timeframe.
+
+==========================================================================================
+
+CUSTOM TEST 4:
+Rides start and end at the same stations.
+
+==========================================================================================
+
+CUSTOM TEST 5:
+Stations never have low availability or low unoccupied.
+
+==========================================================================================
+
+CUSTOM TEST 6:
+No stations exist.
+
+==========================================================================================
+
+CUSTOM TEST 7:
+Rides start from empty stations.
+
+==========================================================================================
+
+CUSTOM TEST 8:
+Rides end at full stations. The ending station may be full when the ride begins, but an
+unoccupied spot will become available as the ride is in progress.

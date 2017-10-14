@@ -18,7 +18,7 @@ please see
 Note: this file is for support purposes only, and is not part of your
 submission.
 """
-from datetime import datetime, timedelta
+from datetime import datetime
 import os
 import pygame
 from pytest import approx
@@ -39,7 +39,7 @@ def test_create_stations_simple():
     station = stations[test_id]
     assert isinstance(station, Station)
     assert station.name == 'de la Commune / Berri'
-    assert station.location == (-73.54983, 45.51086)  # NOTE: (long, lat) coordinates!
+    assert station.location == (-73.54983, 45.51086)
     assert station.num_bikes == 18
     assert station.capacity == 39
 
