@@ -1,4 +1,6 @@
-﻿STRESS TEST 1:
+﻿Test Cases
+
+STRESS TEST 1:
 This test runs 3840 rides from the default stations over a period of 24 hours. The test
 may or may not take a long time to complete.
 
@@ -54,38 +56,108 @@ CUSTOM TEST 1:
 Rides either (begin before the simulation starts and end after the simulation ends) or
 (start after the simulation ends).
 
+Code:
+def sample_simulation() -> Dict[str, Tuple[str, float]]:
+    sim = Simulation('stations.json', 'custom_rides_2.csv')
+    sim.run(datetime(2017, 5, 1, 1, 0, 0), datetime(2017, 5, 1, 2, 0, 0))
+    return sim.calculate_statistics()
+
+Results:
+'max_start': ('10e Avenue / Rosemont', 0)
+'max_end': ('10e Avenue / Rosemont', 0)
+'max_time_low_availability': ('15e avenue / Masson', 3600)
+'max_time_low_unoccupied': ('10e Avenue / Rosemont', 3600)
+
 ==========================================================================================
 
 CUSTOM TEST 2:
 The simulation start time is equal to the simulation end time.
+
+Subtest I
+Code:
+def sample_simulation() -> Dict[str, Tuple[str, float]]:
+    sim = Simulation('stations.json', 'custom_rides_1.csv')
+    sim.run(datetime(2017, 5, 1, 20, 0, 0), datetime(2017, 5, 1, 20, 0, 0))
+    return sim.calculate_statistics()
+
+Results:
+'max_start': ('MÃ©tro Laurier (Rivard / Laurier)', 1)
+'max_end': ('Aylwin / Ontario', 1)
+'max_time_low_availability': ('15e avenue / Masson', 60)
+'max_time_low_unoccupied': ('10e Avenue / Rosemont', 60)
+
+Subtest II
+Code:
+def sample_simulation() -> Dict[str, Tuple[str, float]]:
+    sim = Simulation('stations.json', 'custom_rides_1.csv')
+    sim.run(datetime(2017, 5, 1, 0, 2, 0), datetime(2017, 5, 1, 0, 2, 0))
+    return sim.calculate_statistics()
+
+Results:
+'max_start': ('des Ã‰rables / Gauthier', 2)
+'max_end': ('10e Avenue / Rosemont', 0)
+'max_time_low_availability': ('15e avenue / Masson', 60)
+'max_time_low_unoccupied': ('10e Avenue / Rosemont', 60)
+
+Subtest III
+Code:
+def sample_simulation() -> Dict[str, Tuple[str, float]]:
+    sim = Simulation('stations.json', 'custom_rides_1.csv')
+    sim.run(datetime(2017, 5, 1, 0, 19, 0), datetime(2017, 5, 1, 0, 19, 0))
+    return sim.calculate_statistics()
+
+Results:
+'max_start': ('St-Dominique / St-Zotique', 1)
+'max_end': ('Marie-Anne / de la Roche', 2)
+'max_time_low_availability': ('15e avenue / Masson', 60)
+'max_time_low_unoccupied': ('10e Avenue / Rosemont', 60)
 
 ==========================================================================================
 
 CUSTOM TEST 3:
 No rides run during the simulation timeframe.
 
+Code:
+def sample_simulation() -> Dict[str, Tuple[str, float]]:
+    sim = Simulation('stations.json', 'custom_rides_2.csv')
+    sim.run(datetime(2017, 5, 1, 13, 0, 0), datetime(2017, 5, 1, 14, 0, 0))
+    return sim.calculate_statistics()
+
+Results:
+'max_start': ('10e Avenue / Rosemont', 0)
+'max_end': ('10e Avenue / Rosemont', 0)
+'max_time_low_availability': ('15e avenue / Masson', 3600)
+'max_time_low_unoccupied': ('10e Avenue / Rosemont', 3600)
+
 ==========================================================================================
 
 CUSTOM TEST 4:
 Rides start and end at the same stations.
 
+Code:
+def sample_simulation() -> Dict[str, Tuple[str, float]]:
+    sim = Simulation('stations.json', 'custom_rides_2.csv')
+    sim.run(datetime(2017, 5, 2, 2, 0, 0), datetime(2017, 5, 2, 4, 0, 0))
+    return sim.calculate_statistics()
+
+Results:
+'max_start': ('Boyer / Beaubien', 1)
+'max_end': ('Louis-HÃ©bert / Belllechasse', 1)
+'max_time_low_availability': ('15e avenue / Masson', 7200)
+'max_time_low_unoccupied': ('10e Avenue / Rosemont', 7200)
+
 ==========================================================================================
 
 CUSTOM TEST 5:
-Stations never have low availability or low unoccupied.
-
-==========================================================================================
-
-CUSTOM TEST 6:
 No stations exist.
 
-==========================================================================================
+Code:
+def sample_simulation() -> Dict[str, Tuple[str, float]]:
+    sim = Simulation('stations.json', 'custom_rides_1.csv')
+    sim.run(datetime(2017, 5, 1, 16, 0, 0), datetime(2017, 5, 1, 20, 0, 0))
+    return sim.calculate_statistics()
 
-CUSTOM TEST 7:
-Rides start from empty stations.
-
-==========================================================================================
-
-CUSTOM TEST 8:
-Rides end at full stations. The ending station may be full when the ride begins, but an
-unoccupied spot will become available as the ride is in progress.
+Results:
+- The actual results shouldn't matter; just make sure that your code doesn't crash when
+  this test is run. There is no "right answer", and this case probably won't even be
+  tested.

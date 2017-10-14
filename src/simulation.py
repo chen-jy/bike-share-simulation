@@ -440,7 +440,7 @@ def sample_simulation() -> Dict[str, Tuple[str, float]]:
     #     print(f"End station: {ride.end.name}")
     #     print(f"End time: {ride.end_time}\n")
 
-    sim.run(datetime(2017, 5, 1, 23, 59, 0), datetime(2017, 5, 2, 9, 0, 0))
+    sim.run(datetime(2017, 5, 1, 0, 0, 0), datetime(2017, 5, 2, 0, 0, 0))
     return sim.calculate_statistics()
 
 
