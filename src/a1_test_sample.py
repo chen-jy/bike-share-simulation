@@ -18,7 +18,7 @@ please see
 Note: this file is for support purposes only, and is not part of your
 submission.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import pygame
 from pytest import approx
@@ -39,7 +39,7 @@ def test_create_stations_simple():
     station = stations[test_id]
     assert isinstance(station, Station)
     assert station.name == 'de la Commune / Berri'
-    assert station.location == (-73.54983, 45.51086)
+    assert station.location == (-73.54983, 45.51086)  # NOTE: (long, lat) coordinates!
     assert station.num_bikes == 18
     assert station.capacity == 39
 
@@ -176,7 +176,308 @@ def test_ride_ends_outside_run():
         0
     )
 
+def test_ride_starts_outside_run():
+    """Test a special case: when a ride starts outside the run period.
+    """
+    os.environ['SDL_VIDEODRIVER'] = 'dummy'                 # Ignore this line
+    sim = Simulation('stations.json', 'sample_rides.csv')
+    pygame.event.post(pygame.event.Event(pygame.QUIT, {}))  # Ignore this line
 
+    # This last ride in the sample_rides.csv file now begins
+    # during the simulation run, but ends after the run.
+    sim.run(datetime(2017, 6, 1, 9, 40, 0),
+            datetime(2017, 6, 1, 9, 50, 0))
+    stats = sim.calculate_statistics()
+
+    # One ride still started.
+    assert stats['max_end'] == (
+        sim.all_stations['6052'].name,
+        1
+    )
+
+    # *No* rides were ended during the simulation time period.
+    # As in the previous test, we pick the station whose name
+    # is smallest when compared with <.
+    assert stats['max_start'] == (
+        '10e Avenue / Rosemont',
+        0
+    )
+
+def test_stats_calculate_complicated():
+        """Test a special case: when a ride starts outside the run period.
+        """
+        os.environ['SDL_VIDEODRIVER'] = 'dummy'  # Ignore this line
+        sim = Simulation('stations.json', 'sample_rides.csv')
+        pygame.event.post(pygame.event.Event(pygame.QUIT, {}))  # Ignore this line
+
+        sim.all_stations['6057'].num_bikes -= 2
+
+        # This last ride in the sample_rides.csv file now begins
+        # during the simulation run, but ends after the run.
+        sim.run(datetime(2017, 6, 1, 7, 0, 0),
+                datetime(2017, 6, 1, 10, 0, 0))
+        stats = sim.calculate_statistics()
+
+        # One ride still started.
+        assert stats['max_end'] == (
+            sim.all_stations['6057'].name, # I change the station to be not empty
+            2
+        )
+
+        # *No* rides were ended during the simulation time period.
+        # As in the previous test, we pick the station whose name
+        # is smallest when compared with <.
+        assert stats['max_start'] == (
+            '18e avenue / Rosemont',
+            1
+        )
+
+
+def test_ride_start_at_simulation_start():
+    """Test a special case: when a ride starts outside the run period.
+    """
+    os.environ['SDL_VIDEODRIVER'] = 'dummy'  # Ignore this line
+    sim = Simulation('stations.json', 'sample_rides.csv')
+    pygame.event.post(pygame.event.Event(pygame.QUIT, {}))  # Ignore this line
+
+    # This last ride in the sample_rides.csv file now begins
+    # during the simulation run, but ends after the run.
+    sim.run(datetime(2017, 6, 1, 7, 31, 0),
+            datetime(2017, 6, 1, 7, 32, 0))
+    stats = sim.calculate_statistics()
+
+    # One ride still started.
+    assert stats['max_end'] == (
+        '10e Avenue / Rosemont',
+        0
+    )
+
+    # *No* rides were ended during the simulation time period.
+    # As in the previous test, we pick the station whose name
+    # is smallest when compared with <.
+    assert stats['max_start'] == (
+        sim.all_stations['6134'].name,
+        1
+    )
+
+def test_ride_end_at_simulation_start():
+    """Test a special case: when a ride starts outside the run period.
+    """
+    os.environ['SDL_VIDEODRIVER'] = 'dummy'  # Ignore this line
+    sim = Simulation('stations.json', 'sample_rides.csv')
+    pygame.event.post(pygame.event.Event(pygame.QUIT, {}))  # Ignore this line
+
+    # This last ride in the sample_rides.csv file now begins
+    # during the simulation run, but ends after the run.
+    sim.run(datetime(2017, 6, 1, 7, 54, 0),
+            datetime(2017, 6, 1, 7, 55, 0))
+    stats = sim.calculate_statistics()
+
+    # One ride still started.
+    assert stats['max_end'] == (
+        sim.all_stations['6721'].name,
+        1
+    )
+
+    # *No* rides were ended during the simulation time period.
+    # As in the previous test, we pick the station whose name
+    # is smallest when compared with <.
+    assert stats['max_start'] == (
+        sim.all_stations['6919'].name,
+        0
+    )
+
+def test_ride_start_at_simulation_end():
+    """Test a special case: when a ride starts outside the run period.
+    """
+    os.environ['SDL_VIDEODRIVER'] = 'dummy'  # Ignore this line
+    sim = Simulation('stations.json', 'sample_rides.csv')
+    pygame.event.post(pygame.event.Event(pygame.QUIT, {}))  # Ignore this line
+
+    # This last ride in the sample_rides.csv file now begins
+    # during the simulation run, but ends after the run.
+    sim.run(datetime(2017, 6, 1, 7, 30, 0),
+            datetime(2017, 6, 1, 7, 31, 0))
+    stats = sim.calculate_statistics()
+
+    # One ride still started.
+    assert stats['max_end'] == (
+        sim.all_stations['6919'].name,
+        0
+    )
+
+    # *No* rides were ended during the simulation time period.
+    # As in the previous test, we pick the station whose name
+    # is smallest when compared with <.
+    assert stats['max_start'] == (
+        sim.all_stations['6134'].name,
+        1
+    )
+
+def test_ride_ends_at_simulation_end():
+    """Test a special case: when a ride starts outside the run period.
+    """
+    os.environ['SDL_VIDEODRIVER'] = 'dummy'  # Ignore this line
+    sim = Simulation('stations.json', 'sample_rides.csv')
+    pygame.event.post(pygame.event.Event(pygame.QUIT, {}))  # Ignore this line
+
+    # This last ride in the sample_rides.csv file now begins
+    # during the simulation run, but ends after the run.
+    sim.run(datetime(2017, 6, 1, 7, 53, 0),
+            datetime(2017, 6, 1, 7, 54, 0))
+    stats = sim.calculate_statistics()
+
+    # One ride still started.
+    assert stats['max_end'] == (
+        sim.all_stations['6721'].name,
+        1
+    )
+
+
+
+    # *No* rides were ended during the simulation time period.
+    # As in the previous test, we pick the station whose name
+    # is smallest when compared with <.
+    assert stats['max_start'] == (
+        sim.all_stations['6919'].name,
+        0
+    )
+
+
+def test_two_rides_start_same_time():
+    """Test a special case: when a ride starts outside the run period.
+    """
+    os.environ['SDL_VIDEODRIVER'] = 'dummy'  # Ignore this line
+    sim = Simulation('stations.json', 'sample_rides.csv')
+    pygame.event.post(pygame.event.Event(pygame.QUIT, {}))  # Ignore this line
+
+    # This last ride in the sample_rides.csv file now begins
+    # during the simulation run, but ends after the run.
+    sim.run(datetime(2017, 6, 1, 6, 20, 0),
+            datetime(2017, 6, 1, 6, 25, 0))
+    stats = sim.calculate_statistics()
+
+    # One ride still started.
+    assert stats['max_end'] == (
+        sim.all_stations['6721'].name,
+        2
+    )
+
+    # *No* rides were ended during the simulation time period.
+    # As in the previous test, we pick the station whose name
+    # is smallest when compared with <.
+    assert stats['max_start'] == (
+        sim.all_stations['6919'].name,
+        1
+    )
+
+def test_station_full_one_come_one_leave():
+    """Test a special case: when a ride starts outside the run period.
+    """
+    os.environ['SDL_VIDEODRIVER'] = 'dummy'  # Ignore this line
+    sim = Simulation('stations.json', 'sample_rides.csv')
+    pygame.event.post(pygame.event.Event(pygame.QUIT, {}))  # Ignore this line
+
+    # This last ride in the sample_rides.csv file now begins
+    # during the simulation run, but ends after the run.
+    sim.run(datetime(2017, 6, 1, 6, 2, 0),
+            datetime(2017, 6, 1, 6, 10, 0))
+    stats = sim.calculate_statistics()
+
+    # One ride still started.
+    assert stats['max_end'] == (
+        sim.all_stations['6919'].name,
+        0
+    )
+
+    # *No* rides were ended during the simulation time period.
+    # As in the previous test, we pick the station whose name
+    # is smallest when compared with <.
+    assert stats['max_start'] == (
+        sim.all_stations['6323'].name,
+        1
+    )
+
+def test_station_empty_no_ride_happens():
+    """Test a special case: when a ride starts outside the run period.
+    """
+    os.environ['SDL_VIDEODRIVER'] = 'dummy'  # Ignore this line
+    sim = Simulation('stations.json', 'sample_rides.csv')
+    pygame.event.post(pygame.event.Event(pygame.QUIT, {}))  # Ignore this line
+
+    # This last ride in the sample_rides.csv file now begins
+    # during the simulation run, but ends after the run.
+    sim.run(datetime(2017, 6, 1, 5, 49, 0),
+            datetime(2017, 6, 1, 6, 1, 0))
+    stats = sim.calculate_statistics()
+
+    # One ride still started.
+    assert stats['max_end'] == (
+        sim.all_stations['6919'].name,
+        0
+    )
+
+    # *No* rides were ended during the simulation time period.
+    # As in the previous test, we pick the station whose name
+    # is smallest when compared with <.
+    assert stats['max_start'] == (
+        sim.all_stations['6919'].name,
+        0
+    )
+
+def test_station_ride_starts_station_empty():
+    """Test a special case: when a ride starts outside the run period.
+    """
+    os.environ['SDL_VIDEODRIVER'] = 'dummy'  # Ignore this line
+    sim = Simulation('stations.json', 'sample_rides.csv')
+    pygame.event.post(pygame.event.Event(pygame.QUIT, {}))  # Ignore this line
+
+    # This last ride in the sample_rides.csv file now begins
+    # during the simulation run, but ends after the run.
+    sim.run(datetime(2017, 6, 1, 5, 39, 0),
+            datetime(2017, 6, 1, 5, 49, 0))
+    stats = sim.calculate_statistics()
+
+    # One ride still started.
+    assert stats['max_end'] == (
+        sim.all_stations['6919'].name,
+        0
+    )
+
+    # *No* rides were ended during the simulation time period.
+    # As in the previous test, we pick the station whose name
+    # is smallest when compared with <.
+    assert stats['max_start'] == (
+        sim.all_stations['6919'].name,
+        0
+    )
+
+def test_station_full_no_ride_happens():
+    """Test a special case: when a ride starts outside the run period.
+    """
+    os.environ['SDL_VIDEODRIVER'] = 'dummy'  # Ignore this line
+    sim = Simulation('stations.json', 'sample_rides.csv')
+    pygame.event.post(pygame.event.Event(pygame.QUIT, {}))  # Ignore this line
+
+    # This last ride in the sample_rides.csv file now begins
+    # during the simulation run, but ends after the run.
+    sim.run(datetime(2017, 6, 1, 5, 30, 0),
+            datetime(2017, 6, 1, 5, 36, 0))
+    stats = sim.calculate_statistics()
+
+    # One ride still started.
+    assert stats['max_end'] == (
+        sim.all_stations['6919'].name,
+        0
+    )
+
+    # *No* rides were ended during the simulation time period.
+    # As in the previous test, we pick the station whose name
+    # is smallest when compared with <.
+    assert stats['max_start'] == (
+        sim.all_stations['6134'].name,
+        1
+    )
 if __name__ == '__main__':
     import pytest
     pytest.main(['a1_test_sample.py'])
