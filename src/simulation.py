@@ -68,7 +68,7 @@ class Simulation:
         self.all_stations = create_stations(station_file)
         self.all_rides = create_rides(ride_file, self.all_stations)
         self.active_rides = []
-        self.start_time = datetime.now()  # Arbitrary initial value
+        self.start_time = None  # Will be set when the simulation is run
         self._event_pq = PriorityQueue()
 
     def run(self, start: datetime, end: datetime) -> None:
@@ -86,8 +86,8 @@ class Simulation:
         # Main simulation loop
         curr_time = start
         while curr_time <= end:
-            # self._update_active_rides(curr_time)
-            self._update_active_rides_fast(curr_time)
+            self._update_active_rides(curr_time)
+            # self._update_active_rides_fast(curr_time)
             drawables = stations + self.active_rides
             self.visualizer.render_drawables(drawables, curr_time)
 
@@ -132,17 +132,43 @@ class Simulation:
             it should still be added to self.active_rides.
         """
         for ride in self.all_rides:
+            # Edge case: a ride starts and ends in the same minute
+            if (ride.start_time == time and ride.start.num_bikes > 0 and
+                ride.end_time == time and ride.end.num_bikes <
+                    ride.end.capacity):
+                ride.start.rides_started += 1
+                ride.start.num_bikes -= 1
+                ride.end.rides_ended += 1
+                ride.end.num_bikes += 1
+
+            # # Remove non-active rides
+            # elif ride.end_time == time:
+            #     # Rides that start before the simulation starts will not have
+            #     # been inserted into active_rides at the first minute
+            #     if ride in self.active_rides:
+            #         self.active_rides.remove(ride)
+            #     # Update station statistics only if the ending station has
+            #     # enough unoccupied spots.
+            #     if ride.end.num_bikes < ride.end.capacity:
+            #         ride.end.rides_ended += 1
+            #         ride.end.num_bikes += 1
+
             # Remove non-active rides
-            if ride.end_time <= time and ride in self.active_rides:
-                self.active_rides.remove(ride)
-                # Update station statistics only if the ending station has
-                # enough unoccupied spots.
+
+            elif ride.end_time == time:
                 if ride.end.num_bikes < ride.end.capacity:
-                    ride.end.rides_ended += 1
-                    ride.end.num_bikes += 1
+                    if ride in self.active_rides:
+                        self.active_rides.remove(ride)
+                        ride.end.rides_ended += 1
+                        ride.end.num_bikes += 1
+                    elif ride.start_time < self.start_time:
+                        ride.end.rides_ended += 1
+                        ride.end.num_bikes += 1
+                elif ride in self.active_rides:
+                    self.active_rides.remove(ride)
 
             # Ensure time is correct and there are enough bikes to start
-            elif (ride.start_time <= time <= ride.end_time and
+            elif (ride.start_time <= time < ride.end_time and
                   ride not in self.active_rides and ride.start.num_bikes > 0):
                 self.active_rides.append(ride)
                 # Update station statistics only if the ride started after the
@@ -442,7 +468,7 @@ def sample_simulation() -> Dict[str, Tuple[str, float]]:
     #     print(f"End station: {ride.end.name}")
     #     print(f"End time: {ride.end_time}\n")
 
-    sim.run(datetime(2017, 5, 1, 18, 2, 0), datetime(2017, 5, 1, 21, 51, 0))
+    sim.run(datetime(2017, 5, 1, 14, 28, 0), datetime(2017, 5, 1, 15, 34, 0))
     return sim.calculate_statistics()
 
 
