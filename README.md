@@ -5,5 +5,5 @@ The simulation should be able to identify potential improvements to the system; 
 
 This will allow us to determine decisions such as determining where to put stations most effectively, how many bikes each station should be capable of storing, how many bikes the system overall needs, and where the bikes should be placed at the start of each day.
 
-Yijia (Jimmy) Chen & Daniel Gao  
-University of Toronto
+### References and Acknowledgements
+Starter code provided by Diane Horton and David Liu of the University of Toronto.
